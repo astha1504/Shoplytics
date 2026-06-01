@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.env
+.venv/
+venv/
+data/
+events.jsonl
+yolov8n.pt
+node_modules/
+frontend/dist/
+*.db
+.DS_Store

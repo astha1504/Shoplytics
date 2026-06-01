@@ -1,0 +1,11 @@
+{
+  "store_id": "ST1008",
+  "store_aliases": ["ST1008", "STORE_BLR_002"],
+  "cameras": {
+    "CAM 1": { "role": "entry", "camera_id": "CAM_ENTRY_01" },
+    "CAM 2": { "role": "floor", "camera_id": "CAM_FLOOR_01" },
+    "CAM 3": { "role": "floor", "camera_id": "CAM_FLOOR_02" },
+    "CAM 4": { "role": "billing", "camera_id": "CAM_BILLING_01" },
+    "CAM 5": { "role": "billing", "camera_id": "CAM_BILLING_02" }
+  }
+}
