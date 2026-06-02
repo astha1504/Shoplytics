@@ -1,34 +1,48 @@
-"""Seed database from events.jsonl on startup."""
+"""Seed the database from events.jsonl on first startup.
+
+If events.jsonl does not exist, synthetic events are generated first.
+"""
 
 import json
+import sys
 from pathlib import Path
 
+# Ensure root is on sys.path when run as a standalone script
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 from backend.database import SessionLocal, init_db
-from backend.main import ingest_events
-
-EVENTS_FILE = Path(__file__).resolve().parent.parent / "events.jsonl"
+from backend.models import StoredEvent  # noqa: F401 — ensures table exists
 
 
-def main():
+def main() -> None:
     init_db()
-    if not EVENTS_FILE.exists():
-        from pipeline.run import run_pipeline
 
-        run_pipeline(
-            Path("dataset"),
-            "store1",
-            EVENTS_FILE,
-            synthetic=True,
-        )
+    events_file = Path(__file__).resolve().parent.parent / "events.jsonl"
+
+    # Generate synthetic events if no file present
+    if not events_file.exists():
+        from pipeline.run import run_pipeline
+        run_pipeline(Path("dataset"), "ST1008", events_file, synthetic=True)
+
+    with events_file.open(encoding="utf-8") as f:
+        events = [json.loads(line) for line in f if line.strip()]
+
+    if not events:
+        print("events.jsonl is empty — nothing to seed.")
+        return
+
     db = SessionLocal()
-    events = []
-    with EVENTS_FILE.open(encoding="utf-8") as f:
-        for line in f:
-            if line.strip():
-                events.append(json.loads(line))
-    if events:
-        ingest_events(events, db)
-    db.close()
+    try:
+        # Import internal ingest (avoids Depends resolution)
+        from backend.main import _ingest_batch
+        result = _ingest_batch(events, db)
+        print(
+            f"Seeded: accepted={result.accepted} "
+            f"duplicates={result.duplicates} "
+            f"rejected={result.rejected}"
+        )
+    finally:
+        db.close()
 
 
 if __name__ == "__main__":
