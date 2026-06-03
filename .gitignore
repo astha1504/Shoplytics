@@ -11,4 +11,11 @@ frontend/dist/
 *.db
 .DS_Store
 
+# Large dataset files — excluded from git (too large for GitHub)
 dataset/
+*.mp4
+*.avi
+*.mov
+*.zip
+*.tar.gz
+uploads/
