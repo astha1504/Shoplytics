@@ -348,3 +348,45 @@ class TestAdminEndpoints:
     def test_reload_from_nonexistent_file(self, client):
         r = client.post("/admin/reload-from-file?path=/nonexistent/path/events.jsonl")
         assert r.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Spatial analytics — live customer positions
+# ---------------------------------------------------------------------------
+
+class TestSpatialAnalytics:
+    def test_spatial_empty_store(self, client):
+        r = client.get("/stores/ST1008/spatial")
+        assert r.status_code == 200
+        body = r.json()
+        assert body["active_visitors"] == 0
+        assert body["visitors"] == []
+        assert "SKINCARE" in body["zones"] or "zones" in body
+
+    def test_spatial_tracks_visitor_movement(self, client):
+        events = [
+            _event("ENTRY", "VIS_SP1", metadata={"position_x": 240, "position_y": 540}),
+            _event("ZONE_ENTER", "VIS_SP1", zone="SKINCARE", camera_id="CAM_FLOOR_01",
+                   metadata={"position_x": 300, "position_y": 275}),
+            _event("ZONE_ENTER", "VIS_SP1", zone="MAKEUP", camera_id="CAM_FLOOR_01",
+                   metadata={"position_x": 710, "position_y": 275}),
+        ]
+        _ingest(client, events)
+        body = client.get("/stores/ST1008/spatial").json()
+        assert body["active_visitors"] == 1
+        visitor = next(v for v in body["visitors"] if v["visitor_id"] == "VIS_SP1")
+        assert visitor["zone"] == "MAKEUP"
+        assert len(visitor["trail"]) >= 2
+        assert visitor["x"] > 50  # moved right toward makeup zone
+
+    def test_spatial_excludes_exited_visitors_from_active(self, client):
+        events = [
+            _event("ENTRY", "VIS_SP2", metadata={"position_x": 240, "position_y": 540}),
+            _event("EXIT", "VIS_SP2", metadata={"position_x": 240, "position_y": 540}),
+        ]
+        _ingest(client, events)
+        body = client.get("/stores/ST1008/spatial").json()
+        visitor = next(v for v in body["visitors"] if v["visitor_id"] == "VIS_SP2")
+        assert visitor["is_active"] is False
+        assert visitor["status"] == "exited"
+        assert body["active_visitors"] == 0

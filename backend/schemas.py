@@ -42,6 +42,8 @@ class MetricsResponse(BaseModel):
     avg_dwell_per_zone: Dict[str, float] = Field(default_factory=dict)  # per-zone breakdown
     queue_depth: int
     abandonment_rate: float = 0.0  # %
+    visitors_per_staff: float = 0.0
+    revenue_leakage_est: float = 0.0
 
 
 class FunnelStage(BaseModel):
@@ -90,3 +92,70 @@ class HealthResponse(BaseModel):
 
     status: str = "healthy"
     stores: Dict[str, StoreHealth] = Field(default_factory=dict)
+
+
+class DashboardResponse(BaseModel):
+    store_id: str
+    occupancy: int
+    occupancy_level: str
+    store_vibe: str
+    conversion_rate: float
+    queue_depth: int
+    active_alerts: int
+    uptime_seconds: int
+    staff_needed: int
+    queue_label: str
+    visitors_per_staff: float = 0.0
+    revenue_leakage_est: float = 0.0
+
+
+class SystemStatusResponse(BaseModel):
+    yolo_pipeline: str
+    fastapi_backend: str
+    vibe_engine: str
+    anomaly_detector: str
+    last_inference: Optional[str] = None
+    detection_running: bool = False
+
+
+class DetectStartRequest(BaseModel):
+    source_type: str
+    source_path: Optional[str] = None
+    webcam_index: int = 0
+    role: str = "floor"
+    camera_id: Optional[str] = None
+    store_id: str = "ST1008"
+    realtime: bool = True
+    max_frames: Optional[int] = None
+    fps_skip: int = 2
+
+
+class SpatialVisitor(BaseModel):
+    visitor_id: str
+    display_id: str
+    x: float
+    y: float
+    zone: Optional[str] = None
+    status: str = "active"
+    is_active: bool = True
+    last_event_type: Optional[str] = None
+    last_seen: Optional[str] = None
+    trail: List[dict] = Field(default_factory=list)
+
+
+class SpatialZone(BaseModel):
+    polygon: Optional[List[List[float]]] = None
+    line: Optional[dict] = None
+    centroid: dict
+    color: str = "#64748b"
+
+
+class SpatialResponse(BaseModel):
+    """GET /stores/{id}/spatial — live customer positions on floor plan."""
+
+    store_id: str
+    canvas: dict
+    zones: Dict[str, SpatialZone]
+    visitors: List[SpatialVisitor]
+    active_visitors: int
+    total_tracked: int

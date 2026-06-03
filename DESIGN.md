@@ -1,4 +1,4 @@
-# DESIGN.md — Apex Store Intelligence
+# DESIGN.md — Shoplytics AI Store Intelligence
 
 ## Overview
 
@@ -105,7 +105,7 @@ FastAPI provides async request handling, OpenAPI docs at `/docs`, and Pydantic r
 
 ### Real-time Metrics — `GET /stores/{id}/metrics`
 
-Computed live from the DB on every request (no cache). Returns: unique visitors (ENTRY + REENTRY deduped by `visitor_id`), conversion rate (purchases / visitors × 100), avg dwell time per zone (dict), current queue depth (max of all BILLING_QUEUE_JOIN depths), abandonment rate.
+Computed live from the DB on every request (no cache). Returns: unique visitors (ENTRY + REENTRY deduped by `visitor_id`), conversion rate (purchases / visitors × 100), avg dwell time per zone (dict), current queue depth, abandonment rate, **staffing efficiency (visitors/staff)**, and **revenue leakage estimates**.
 
 ### Funnel — `GET /stores/{id}/funnel`
 

@@ -22,6 +22,32 @@ BASE_TIME = datetime(2026, 3, 3, 9, 0, 0, tzinfo=timezone.utc)
 ZONES = ["SKINCARE", "MAKEUP", "HAIRCARE", "FRAGRANCE", "ACCESSORIES"]
 DEFAULT_STORE = "STORE_BLR_002"
 
+# Zone centroids for spatial analytics (matches config/store_layout.json)
+ZONE_POSITIONS = {
+    "SKINCARE": (300, 275),
+    "MAKEUP": (710, 275),
+    "HAIRCARE": (500, 535),
+    "FRAGRANCE": (500, 535),
+    "ACCESSORIES": (850, 535),
+}
+ENTRY_POS = (240, 540)
+BILLING_POS = (875, 500)
+
+
+def _pos(zone: str | None, vid: str, offset: int = 0) -> dict:
+    """Position metadata for spatial floor map."""
+    import hashlib
+    if zone and zone in ZONE_POSITIONS:
+        bx, by = ZONE_POSITIONS[zone]
+    elif zone == "BILLING":
+        bx, by = BILLING_POS
+    else:
+        bx, by = ENTRY_POS
+    h = hashlib.md5(f"{vid}{offset}".encode()).hexdigest()
+    dx = (int(h[:4], 16) / 65535 - 0.5) * 30
+    dy = (int(h[4:8], 16) / 65535 - 0.5) * 30
+    return {"position_x": round(bx + dx, 1), "position_y": round(by + dy, 1)}
+
 
 def _ts(offset_seconds: int) -> str:
     t = BASE_TIME + timedelta(seconds=offset_seconds)
@@ -60,7 +86,7 @@ def _emit_visitor_session(
         event_type="ENTRY", timestamp=_ts(t), visitor_id=vid,
         store_id=store_id, camera_id=cam_entry,
         confidence=conf, is_staff=is_staff,
-        metadata={"session_seq": seq},
+        metadata={"session_seq": seq, **_pos(None, vid, 0)},
     )
     if writer.emit(ev):
         count += 1
@@ -68,12 +94,12 @@ def _emit_visitor_session(
     t += 20
 
     # ZONE visits
-    for zone in zones:
+    for zi, zone in enumerate(zones):
         ev_enter = Event(
             event_type="ZONE_ENTER", timestamp=_ts(t), visitor_id=vid,
             store_id=store_id, camera_id=cam_floor, zone_id=zone,
             confidence=conf - 0.03, is_staff=is_staff,
-            metadata={"session_seq": seq},
+            metadata={"session_seq": seq, **_pos(zone, vid, zi)},
         )
         if writer.emit(ev_enter):
             count += 1
@@ -85,7 +111,7 @@ def _emit_visitor_session(
             event_type="ZONE_DWELL", timestamp=_ts(t), visitor_id=vid,
             store_id=store_id, camera_id=cam_floor, zone_id=zone,
             dwell_ms=35000, confidence=conf - 0.05, is_staff=is_staff,
-            metadata={"session_seq": seq, "sku_zone": zone},
+            metadata={"session_seq": seq, "sku_zone": zone, **_pos(zone, vid, zi + 10)},
         )
         if writer.emit(ev_dwell):
             count += 1
@@ -96,7 +122,7 @@ def _emit_visitor_session(
             event_type="ZONE_EXIT", timestamp=_ts(t), visitor_id=vid,
             store_id=store_id, camera_id=cam_floor, zone_id=zone,
             confidence=conf - 0.02, is_staff=is_staff,
-            metadata={"session_seq": seq},
+            metadata={"session_seq": seq, **_pos(zone, vid, zi + 20)},
         )
         if writer.emit(ev_exit):
             count += 1
@@ -109,7 +135,7 @@ def _emit_visitor_session(
             event_type="BILLING_QUEUE_JOIN", timestamp=_ts(t), visitor_id=vid,
             store_id=store_id, camera_id=cam_bill, confidence=conf,
             is_staff=is_staff,
-            metadata={"queue_depth": queue_depth, "session_seq": seq},
+            metadata={"queue_depth": queue_depth, "session_seq": seq, **_pos("BILLING", vid, 99)},
         )
         if writer.emit(ev_q):
             count += 1
@@ -131,7 +157,7 @@ def _emit_visitor_session(
     ev_exit = Event(
         event_type="EXIT", timestamp=_ts(t), visitor_id=vid,
         store_id=store_id, camera_id=cam_entry, confidence=conf,
-        is_staff=is_staff, metadata={"session_seq": seq},
+        is_staff=is_staff, metadata={"session_seq": seq, **_pos(None, vid, 100)},
     )
     if writer.emit(ev_exit):
         count += 1

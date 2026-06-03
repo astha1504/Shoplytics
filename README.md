@@ -106,6 +106,7 @@ python scripts/stream_events.py --batch-size 5 --interval 2
 | `GET`  | `/stores/{id}/metrics` | Unique visitors, conversion rate, avg dwell per zone, queue depth |
 | `GET`  | `/stores/{id}/funnel` | Entry→Zone→Billing→Purchase with drop-off % |
 | `GET`  | `/stores/{id}/heatmap` | Zone visit frequency + avg dwell, normalised 0–100 |
+| `GET`  | `/stores/{id}/spatial` | **Live customer positions** on floor plan with movement trails |
 | `GET`  | `/stores/{id}/anomalies` | Queue spike, conversion drop, dead zone, abandonment |
 | `GET`  | `/health` | Per-store STALE_FEED when last event > 10 min ago |
 | `POST` | `/admin/reload-from-file` | Load `events.jsonl` into DB (demo) |
@@ -153,6 +154,23 @@ python scripts/stream_events.py --batch-size 5 --interval 2.0
 ```
 
 Open http://localhost:5173, enable **🔴 Live Mode**, watch visitors, conversion rate, zone heatmap, and anomalies update in real time.
+
+### Spatial Analytics (customer movement on floor plan)
+
+Open the **Spatial** tab on the dashboard. Customer dots move across the store layout as events stream in:
+
+```bash
+# Terminal 1 — API
+uvicorn backend.main:app --port 8000
+
+# Terminal 2 — Dashboard
+cd frontend && npm run dev
+
+# Terminal 3 — Stream events (customers move zone-to-zone on the map)
+python scripts/stream_events.py --batch-size 3 --interval 1.5
+```
+
+Each `ZONE_ENTER` / `ZONE_DWELL` event carries `metadata.position_x/y` from YOLO bounding-box centroids. The `/stores/{id}/spatial` endpoint builds movement trails and active visitor positions.
 
 ## Tests
 

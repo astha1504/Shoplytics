@@ -107,6 +107,10 @@ def compute_metrics(db: Session, dataset_dir: Path | None, store_id: str) -> dic
     abandons = len([e for e in all_ev if e.event_type == "BILLING_QUEUE_ABANDON"])
     abandonment_rate = (abandons / joins * 100) if joins else 0.0
 
+    # Staffing Efficiency: visitors per staff member (assuming at least 1 staff if occupancy > 0)
+    staff_count = max(1, queue_depth // 3 + (1 if visitors > 10 else 0))
+    visitors_per_staff = round(visitors / staff_count, 1) if staff_count else 0
+
     return {
         "store_id": store_id,
         "visitors": visitors,
@@ -115,6 +119,8 @@ def compute_metrics(db: Session, dataset_dir: Path | None, store_id: str) -> dic
         "avg_dwell_per_zone": avg_dwell_per_zone,
         "queue_depth": queue_depth,
         "abandonment_rate": round(abandonment_rate, 1),
+        "visitors_per_staff": visitors_per_staff,
+        "revenue_leakage_est": round(abandons * 450.0, 2), # Assuming avg basket value 450
     }
 
 
