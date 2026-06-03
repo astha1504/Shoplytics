@@ -8,7 +8,7 @@ import SpatialFloorMap from "./SpatialFloorMap.jsx";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, ArcElement, Title, Tooltip, Legend, Filler);
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API = import.meta.env.VITE_API_URL || "https://shoplytics-2.onrender.com";
 const STORE = import.meta.env.VITE_STORE_ID || "ST1008";
 
 async function api(path, opts) {

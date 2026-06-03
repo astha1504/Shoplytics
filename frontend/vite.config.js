@@ -7,7 +7,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       "/api": {
-        target: "http://localhost:8000",
+        target: "https://shoplytics-2.onrender.com",
         changeOrigin: true,
         rewrite: (p) => p.replace(/^\/api/, ""),
       },
