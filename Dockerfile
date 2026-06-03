@@ -13,7 +13,6 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY pipeline ./pipeline
 COPY backend ./backend
 COPY config ./config
-COPY dataset ./dataset
 COPY scripts ./scripts
 
 RUN python -m pipeline.run --synthetic --output /app/events.jsonl || true
