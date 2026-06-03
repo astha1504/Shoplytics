@@ -256,21 +256,32 @@ class VideoProcessor:
         return self._run_loop(cap, max_frames=max_frames, realtime=realtime, on_frame=on_frame, stop_event=stop_event)
 
     def process_webcam(self, device=0, **kwargs):
-        self._init_model()
-        # Modern OpenCV: use apiPreference as 2nd argument
         import sys
+        import os
+
+        # Cloud environments (Render, Railway, etc.) have no camera hardware.
+        # Fail fast with a clear message instead of a long OpenCV timeout.
+        if os.environ.get("RENDER") or os.environ.get("RAILWAY_ENVIRONMENT"):
+            raise RuntimeError(
+                "Webcam not available: this server runs in a cloud environment "
+                "with no physical camera. Upload a video file instead."
+            )
+
+        self._init_model()
         if sys.platform.startswith("win"):
             cap = cv2.VideoCapture(device, cv2.CAP_DSHOW)
         else:
             cap = cv2.VideoCapture(device)
-            
+
         if not cap.isOpened():
-            # Final fallback
             cap = cv2.VideoCapture(device)
-        
+
         if not cap.isOpened():
-            raise RuntimeError(f"Hardware camera busy or not found (Device ID: {device})")
-            
+            raise RuntimeError(
+                f"Hardware camera busy or not found (Device ID: {device}). "
+                "Try uploading a video file instead."
+            )
+
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
         return self._run_loop(cap, **kwargs)
