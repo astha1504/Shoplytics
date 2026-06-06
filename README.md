@@ -1,4 +1,4 @@
-# Apex Store Intelligence — Purplle Engineering Challenge
+# Apex Store Intelligence 
 
 End-to-end retail analytics: **CCTV footage → YOLOv8 detection → event stream → FastAPI → live React dashboard**.
 
